@@ -15,6 +15,10 @@ import torch.nn.functional as F
 from torchvision import datasets, transforms, models
 from tensorboardX import SummaryWriter
 
+
+#os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+#os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3"
+
 writer = SummaryWriter()
 
 data_dir = 'train'
@@ -46,18 +50,18 @@ def load_split_train_test(datadir, valid_size = .2):
     test_sampler = SubsetRandomSampler(test_idx)
 
     trainloader = torch.utils.data.DataLoader(train_data,
-                   sampler=train_sampler, batch_size=64)
+                   sampler=train_sampler, batch_size=16)
     testloader = torch.utils.data.DataLoader(test_data,
-                   sampler=test_sampler, batch_size=64)
+                   sampler=test_sampler, batch_size=16)
     return trainloader, testloader
 trainloader, testloader = load_split_train_test(data_dir, .2)
 print(trainloader.dataset.classes)
 
 model = torch.hub.load('pytorch/vision', 'resnext101_32x8d', pretrained=True)
-#model = torch.load("densenet.pth").cuda()
+#model = torch.load("resnext.pth").cuda()
 model = model.cuda()
-model = nn.DataParallel(model).cuda()
-device = ("cuda" if torch.cuda.is_available() else "cpu" )
+#model = nn.DataParallel(model).cuda()
+device = ("cuda:0" if torch.cuda.is_available() else "cpu" )
 
 criterion = nn.CrossEntropyLoss()
 
@@ -108,9 +112,9 @@ for epoch in range(epochs):
                     accuracy += torch.mean(equals.type(torch.FloatTensor)).item()
             train_losses.append(running_loss/len(trainloader))
             test_losses.append(test_loss/len(testloader)) 
-            writer.add_scalar('Loss/train', batch_loss, steps)
-            writer.add_scalar('Loss/test', test_loss, steps)
-            writer.add_scalar('Accuracy/train', accuracy, steps)
+            writer.add_scalar('Loss/train', running_loss/print_every, steps)
+            writer.add_scalar('Loss/test', test_loss/len(testloader), steps)
+            writer.add_scalar('Accuracy/train', accuracy/len(testloader), steps)
             print(f"Epoch {epoch+1}/{epochs}.. "
                   f"Train loss: {running_loss/print_every:.3f}.. "
                   f"Test loss: {test_loss/len(testloader):.3f}.. "
@@ -119,4 +123,3 @@ for epoch in range(epochs):
             model.train()
     torch.save(model, 'resnext.pth')
 writer.close()
-

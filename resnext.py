@@ -1,3 +1,4 @@
+
 from __future__ import print_function, division, absolute_import
 import torch
 import torch.nn as nn
@@ -53,7 +54,7 @@ print(trainloader.dataset.classes)
 model = torch.hub.load('pytorch/vision', 'resnext101_32x8d', pretrained=True)
 #model = torch.load("densenet.pth").cuda()
 model = model.cuda()
-model = nn.DataParallel(model).cuda()
+#model = nn.DataParallel(model).cuda()
 device = ("cuda" if torch.cuda.is_available() else "cpu" )
 
 criterion = nn.CrossEntropyLoss()

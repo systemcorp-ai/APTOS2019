@@ -1,3 +1,4 @@
+
 from __future__ import print_function, division, absolute_import
 import torch
 import torch.nn as nn
@@ -111,9 +112,9 @@ for epoch in range(epochs):
                     accuracy += torch.mean(equals.type(torch.FloatTensor)).item()
             train_losses.append(running_loss/len(trainloader))
             test_losses.append(test_loss/len(testloader)) 
-            writer.add_scalar('Loss/train', train_losses, step)
-            writer.add_scalar('Loss/test', test.losses, step)
-            writer.add_scalar('Accuracy/train', accuracy, step)
+            writer.add_scalar('Loss/train', train_losses, steps)
+            writer.add_scalar('Loss/test', test.losses, steps)
+            writer.add_scalar('Accuracy/train', accuracy, steps)
             print(f"Epoch {epoch+1}/{epochs}.. "
                   f"Train loss: {running_loss/print_every:.3f}.. "
                   f"Test loss: {test_loss/len(testloader):.3f}.. "

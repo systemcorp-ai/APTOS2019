@@ -1,4 +1,3 @@
-
 from __future__ import print_function, division, absolute_import
 import torch
 import torch.nn as nn
@@ -14,6 +13,9 @@ from torch import nn
 from torch import optim
 import torch.nn.functional as F
 from torchvision import datasets, transforms, models
+from tensorboardX import SummaryWriter
+
+writer = SummaryWriter()
 
 data_dir = 'train'
 def load_split_train_test(datadir, valid_size = .2):
@@ -44,9 +46,9 @@ def load_split_train_test(datadir, valid_size = .2):
     test_sampler = SubsetRandomSampler(test_idx)
 
     trainloader = torch.utils.data.DataLoader(train_data,
-                   sampler=train_sampler, batch_size=32)
+                   sampler=train_sampler, batch_size=64)
     testloader = torch.utils.data.DataLoader(test_data,
-                   sampler=test_sampler, batch_size=32)
+                   sampler=test_sampler, batch_size=64)
     return trainloader, testloader
 trainloader, testloader = load_split_train_test(data_dir, .2)
 print(trainloader.dataset.classes)
@@ -54,7 +56,7 @@ print(trainloader.dataset.classes)
 model = torch.hub.load('pytorch/vision', 'resnext101_32x8d', pretrained=True)
 #model = torch.load("densenet.pth").cuda()
 model = model.cuda()
-#model = nn.DataParallel(model).cuda()
+model = nn.DataParallel(model).cuda()
 device = ("cuda" if torch.cuda.is_available() else "cpu" )
 
 criterion = nn.CrossEntropyLoss()
@@ -91,9 +93,6 @@ for epoch in range(epochs):
         running_loss += loss.item()
         if steps % print_every == 0:
             end = time.time()
-            info = open('outy.txt','a')
-            info.write("Time per print_every - "+str(end-start)+" \n")
-            info.close()
             test_loss = 0
             accuracy = 0
             model.eval()
@@ -108,22 +107,16 @@ for epoch in range(epochs):
                     equals = top_class == labels.view(*top_class.shape)
                     accuracy += torch.mean(equals.type(torch.FloatTensor)).item()
             train_losses.append(running_loss/len(trainloader))
-            test_losses.append(test_loss/len(testloader))                    
+            test_losses.append(test_loss/len(testloader)) 
+            writer.add_scalar('Loss/train', batch_loss, steps)
+            writer.add_scalar('Loss/test', test_loss, steps)
+            writer.add_scalar('Accuracy/train', accuracy, steps)
             print(f"Epoch {epoch+1}/{epochs}.. "
                   f"Train loss: {running_loss/print_every:.3f}.. "
                   f"Test loss: {test_loss/len(testloader):.3f}.. "
                   f"Test accuracy: {accuracy/len(testloader):.3f}")
-            info = open('out.txt','a')
-            info.write(f"Epoch {epoch+1}/{epochs}.. "
-            f"Train loss: {running_loss/print_every:.3f}.. "
-            f"Test loss: {test_loss/len(testloader):.3f}.. "
-            f"Test accuracy: {accuracy/len(testloader):.3f} \n")
-            info.close()
             running_loss = 0
             model.train()
-        if steps % 50 == 0:
-            info = open('outy.txt','a')
-            info.write("Step - "+str(steps)+" \n")
-            info.close()
-
     torch.save(model, 'resnext.pth')
+writer.close()
+
